@@ -1,11 +1,13 @@
 package kr.apo2073.userShop.inv
 
 import kr.apo2073.userShop.UserShop
+import kr.apo2073.userShop.utilities.InvData
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
+import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
@@ -35,6 +37,7 @@ class ShopHolder: InventoryHolder, Listener {
             ItemStack(Material.GREEN_STAINED_GLASS_PANE).apply {
                 val meta=this.itemMeta
                 meta.displayName(Component.text("다음 페이지").color(NamedTextColor.GREEN))
+                meta.persistentDataContainer.set(pageKey, PersistentDataType.INTEGER, 2)
                 itemMeta=meta
             })
         return inv
@@ -42,6 +45,10 @@ class ShopHolder: InventoryHolder, Listener {
 
     @EventHandler
     fun InventoryClickEvent.changePage() {
-
+        if (inventory.holder !is ShopHolder) return
+        val page= currentItem?.itemMeta?.persistentDataContainer?.get(pageKey, PersistentDataType.INTEGER)?:return
+        val player =whoClicked as Player
+        player.closeInventory()
+        player.openInventory(inv.apply { contents= InvData().getPage(page).toTypedArray() })
     }
 }
