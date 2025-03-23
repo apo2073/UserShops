@@ -1,0 +1,7 @@
+shop:
+  title: "Example Shop"
+
+  page:
+    '1':
+      '0':
+        # Item ID

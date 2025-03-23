@@ -1,0 +1,5 @@
+name: UserShop
+version: ${version}
+main: kr.apo2073.userShop.UserShop
+api-version: '1.20'
+authors: [ 아포칼립스 ]
