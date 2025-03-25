@@ -17,7 +17,13 @@ import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
 
-class ShopHolder(private val player: Player): InventoryHolder, Listener {
+class ShopHolder: InventoryHolder, Listener {
+    constructor(player: Player) {
+        this.player=player
+    }
+    constructor()
+
+    private lateinit var player: Player
     private val plugin=UserShop.plugin
     private val inv= Bukkit.createInventory(
         this,
@@ -29,6 +35,7 @@ class ShopHolder(private val player: Player): InventoryHolder, Listener {
     private val priceKey=NamespacedKey(plugin, "price")
 
     override fun getInventory():Inventory {
+        if (!::player.isInitialized) return inv
         inv.contents= UserData(player).getPage(1).toTypedArray()
 
         inv.setItem(45,
@@ -52,6 +59,7 @@ class ShopHolder(private val player: Player): InventoryHolder, Listener {
     @EventHandler
     fun InventoryClickEvent.changePage() {
         if (inventory.holder !is ShopHolder) return
+        isCancelled=true
         val page= currentItem?.itemMeta?.persistentDataContainer?.get(pageKey, PersistentDataType.INTEGER)?:return
         val player =whoClicked as Player
         val owner=Bukkit.getPlayer(currentItem?.itemMeta?.persistentDataContainer?.get(playerKey, PersistentDataType.STRING).toString()) ?: return
@@ -80,6 +88,7 @@ class ShopHolder(private val player: Player): InventoryHolder, Listener {
     @EventHandler
     fun InventoryClickEvent.manage() {
         if (inventory.holder !is ShopHolder) return
+        isCancelled=true
 
         val player =whoClicked as Player
         val owner=Bukkit.getPlayer(inventory.getItem(45)!!.itemMeta?.persistentDataContainer?.get(playerKey, PersistentDataType.STRING).toString()) ?: return
@@ -91,19 +100,26 @@ class ShopHolder(private val player: Player): InventoryHolder, Listener {
         player.inventory.addItem(currentItem ?: return)
         UserData(player).setItemInSlot(page, slot, null)
         player.sendMessage(prefix.append(Component.text("해당 아이템을 판매 취소했습니다")))
+        player.updateInventory()
     }
 
     private val prefix = MiniMessage.miniMessage().deserialize("<b><gradient:#DBCDF0:#8962C3>[ 계시판 ]</gradient></b> ")
     @EventHandler
     fun InventoryClickEvent.bought() {
         if (inventory.holder !is ShopHolder) return
+        isCancelled=true
 
         val player =whoClicked as Player
         val owner=Bukkit.getPlayer(inventory.getItem(45)!!.itemMeta?.persistentDataContainer?.get(playerKey, PersistentDataType.STRING).toString()) ?: return
         val price=currentItem?.itemMeta?.persistentDataContainer?.get(pageKey, PersistentDataType.DOUBLE) ?: return
+        val page= inventory.getItem(45)!!.itemMeta?.persistentDataContainer?.get(priceKey, PersistentDataType.INTEGER)?:return
+
         val userData=UserData(owner)
+
+        userData.setItemInSlot(page, slot, null)
         userData.addEarnings(price.toInt())
         UserShop.economy.withdrawPlayer(player, price)
         player.sendMessage(prefix.append(Component.text("해당 아이템을 구매했습니다")))
+        player.updateInventory()
     }
 }

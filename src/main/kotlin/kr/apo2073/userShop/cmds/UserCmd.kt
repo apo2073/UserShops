@@ -18,46 +18,53 @@ class UserCmd : TabExecutor {
     private val prefix = MiniMessage.miniMessage().deserialize("<b><gradient:#DBCDF0:#8962C3>[ 계시판 ]</gradient></b> ")
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<String>): Boolean {
-        if (sender !is Player) {
-            sender.sendMessage(prefix.append(Component.text("플레이어만 사용할 수 있는 명령어입니다.", NamedTextColor.RED)))
+        if (sender !is Player) return false
+
+        if (!sender.hasPermission("apo.board.cmds")) {
+            sender.sendMessage(prefix.append(Component.text("명령어를 사용할 권한이 없습니다!")))
             return true
         }
-        val player = sender
-
         when (args.getOrNull(0)) {
             "등록" -> {
-                val itemInHand = player.inventory.itemInMainHand
+                val itemInHand = sender.inventory.itemInMainHand
                 if (itemInHand.type.isAir) {
-                    player.sendMessage(prefix.append(Component.text("손에 아이템을 들어야 합니다!", NamedTextColor.RED)))
+                    sender.sendMessage(prefix.append(Component.text("손에 아이템을 들어야 합니다!", NamedTextColor.RED)))
                     return true
                 }
                 val holder = AddItemHolder()
-                player.openInventory(holder.inventory.apply {
+                sender.openInventory(holder.inventory.apply {
                     setItem(10, itemInHand.clone())
                 })
             }
 
             "대금수령" -> {
-                val userData = UserData(player)
+                val userData = UserData(sender)
                 val earnings = userData.getEarnings()
                 if (earnings <= 0) {
-                    player.sendMessage(prefix.append(Component.text("수령할 대금이 없습니다.", NamedTextColor.YELLOW)))
+                    sender.sendMessage(prefix.append(Component.text("수령할 대금이 없습니다.", NamedTextColor.YELLOW)))
                     return true
                 }
-                UserShop.economy.depositPlayer(player, earnings.toDouble())
+                UserShop.economy.depositPlayer(sender, earnings.toDouble())
                 userData.clearEarnings()
-                player.sendMessage(prefix.append(Component.text("대금 ${earnings}원을 수령했습니다.", NamedTextColor.GREEN)))
+                sender.sendMessage(prefix.append(Component.text("대금 ${earnings}원을 수령했습니다.", NamedTextColor.GREEN)))
             }
 
             else -> {
-                val targetPlayer = if (args.isEmpty()) player else Bukkit.getPlayer(args[0])
+                val targetPlayer = if (args.isEmpty()) sender else Bukkit.getPlayer(args[0])
                 if (targetPlayer == null && args.isNotEmpty()) {
-                    player.sendMessage(prefix.append(Component.text("플레이어 '${args[0]}'을 찾을 수 없습니다.", NamedTextColor.RED)))
+                    sender.sendMessage(
+                        prefix.append(
+                            Component.text(
+                                "플레이어 '${args[0]}'을 찾을 수 없습니다.",
+                                NamedTextColor.RED
+                            )
+                        )
+                    )
                     return true
                 }
-                val target = targetPlayer ?: player
+                val target = targetPlayer ?: sender
                 val holder = ShopHolder(target)
-                player.openInventory(holder.inventory)
+                sender.openInventory(holder.inventory)
             }
         }
         return true

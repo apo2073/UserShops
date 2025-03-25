@@ -2,4 +2,14 @@ name: UserShop
 version: ${version}
 main: kr.apo2073.userShop.UserShop
 api-version: '1.20'
+depend: [Vault]
 authors: [ 아포칼립스 ]
+commands:
+  계시판:
+
+permissions:
+  apo.board.*:
+    default: not op
+    children:
+      apo.board.cmds:
+        default: notop

@@ -1,5 +1,8 @@
 package kr.apo2073.userShop
 
+import kr.apo2073.userShop.cmds.UserCmd
+import kr.apo2073.userShop.inv.AddItemHolder
+import kr.apo2073.userShop.inv.ShopHolder
 import net.milkbowl.vault.economy.Economy
 import org.bukkit.plugin.java.JavaPlugin
 
@@ -14,6 +17,12 @@ class UserShop : JavaPlugin() {
         plugin=this
 
         setupEcon(this)
+        server.pluginManager.registerEvents(AddItemHolder(), this)
+        server.pluginManager.registerEvents(ShopHolder(), this)
+        getCommand("계시판")?.apply {
+            setExecutor(UserCmd())
+            tabCompleter=UserCmd()
+        }
     }
 
     private fun setupEcon(plugin: JavaPlugin): Boolean {

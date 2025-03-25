@@ -55,6 +55,7 @@ class AddItemHolder: InventoryHolder, Listener {
     @EventHandler
     fun InventoryClickEvent.onClick() {
         if (inventory.holder !is AddItemHolder) return
+        isCancelled=true
         val player = whoClicked as Player
         val item = inventory.getItem(10) ?: return
         val meta = item.itemMeta ?: return
@@ -101,5 +102,6 @@ class AddItemHolder: InventoryHolder, Listener {
         currentLore.add(0, Component.text(price.toString()))
         meta.lore(currentLore)
         item.itemMeta = meta
+        player.updateInventory()
     }
 }
