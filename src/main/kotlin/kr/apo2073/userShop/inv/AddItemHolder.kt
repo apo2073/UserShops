@@ -1,13 +1,13 @@
 package kr.apo2073.userShop.inv
 
 import kr.apo2073.userShop.UserShop
-import kr.apo2073.userShop.utilities.InvData
-import net.kyori.adventure.bossbar.BossBar
+import kr.apo2073.userShop.utilities.UserData
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Material
+import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
@@ -16,6 +16,7 @@ import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
+import org.bukkit.persistence.PersistentDataType
 
 class AddItemHolder: InventoryHolder, Listener {
     private val plugin=UserShop.plugin
@@ -59,32 +60,37 @@ class AddItemHolder: InventoryHolder, Listener {
         val meta = item.itemMeta ?: return
         val currentLore = meta.lore() ?: mutableListOf()
         if (currentLore.isEmpty()) currentLore.add(Component.text("0"))
-        val lore = StringBuilder(PlainTextComponentSerializer.plainText().serialize(currentLore[0]))
+        val price = StringBuilder(PlainTextComponentSerializer.plainText().serialize(currentLore[0]))
         when (slot) {
-            14 -> lore.append(1)
-            15 -> lore.append(2)
-            16 -> lore.append(3)
-            23 -> lore.append(4)
-            24 -> lore.append(5)
-            25 -> lore.append(6)
-            32 -> lore.append(7)
-            33 -> lore.append(8)
-            34 -> lore.append(9)
-            42 -> lore.append(0)
-            41 -> if (lore.isNotEmpty()) lore.deleteCharAt(lore.length - 1)
+            14 -> price.append(1)
+            15 -> price.append(2)
+            16 -> price.append(3)
+            23 -> price.append(4)
+            24 -> price.append(5)
+            25 -> price.append(6)
+            32 -> price.append(7)
+            33 -> price.append(8)
+            34 -> price.append(9)
+            42 -> price.append(0)
+            41 -> if (price.isNotEmpty()) price.deleteCharAt(price.length - 1)
             43 -> {
                 player.closeInventory()
+                player.inventory.setItemInMainHand(null)
                 item.apply {
                     val meta=this.itemMeta
                     val lore=meta.lore() ?: mutableListOf()
-                    lore.add(Component.text("플레이어 ${player.name}이(가) 등록함").color(TextColor.color(0xC68EFD)))
+                    meta.persistentDataContainer.set(NamespacedKey(UserShop.plugin, "price"),
+                        PersistentDataType.DOUBLE, price.toString().toInt().toDouble()
+                    )
+                    lore[0] = Component.text("가격: ${price}원").color(TextColor.color(0xDDEB9D))
+                    lore.add(1, Component.text("플레이어 ${player.name}이(가) 등록함").color(TextColor.color(0xC68EFD)))
                     item.itemMeta=meta
                 }
-                val invData = InvData()
+                val userData = UserData(player)
                 for (i in 1..1000) {
-                    if (invData.getPage(i).size >= 45) continue
+                    if (userData.getPage(i).size >= 45) continue
                     else {
-                        invData.addToPage(item, i)
+                        userData.addToPage(item, i)
                         break
                     }
                 }
@@ -92,7 +98,7 @@ class AddItemHolder: InventoryHolder, Listener {
             }
             else -> return
         }
-        currentLore[0] = Component.text(lore.toString())
+        currentLore.add(0, Component.text(price.toString()))
         meta.lore(currentLore)
         item.itemMeta = meta
     }
