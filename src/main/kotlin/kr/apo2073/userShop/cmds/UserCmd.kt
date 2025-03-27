@@ -1,5 +1,7 @@
 package kr.apo2073.userShop.cmds
 
+import com.google.gson.JsonParseException
+import com.google.gson.JsonStreamParser
 import kr.apo2073.userShop.UserShop
 import kr.apo2073.userShop.inv.AddItemHolder
 import kr.apo2073.userShop.inv.ShopHolder
@@ -33,7 +35,21 @@ class UserCmd : TabExecutor {
                 }
                 val holder = AddItemHolder()
                 sender.openInventory(holder.inventory.apply {
-                    setItem(10, itemInHand.clone())
+                    setItem(10, itemInHand.clone().apply {
+                        val meta=itemMeta
+                        try {
+                            if (meta.lore()==null) {
+                                meta.lore(mutableListOf(Component.text("0")))
+                            } else {
+                                val lore=meta.lore() ?: mutableListOf()
+                                lore.add(0, Component.text("0"))
+                                meta.lore(lore)
+                            }
+                        } catch (je: JsonParseException) {
+                            meta.lore(mutableListOf(Component.text("0")))
+                        }
+                        itemMeta=meta
+                    })
                 })
             }
 

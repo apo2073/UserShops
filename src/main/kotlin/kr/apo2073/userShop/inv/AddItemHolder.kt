@@ -75,18 +75,20 @@ class AddItemHolder: InventoryHolder, Listener {
             42 -> price.append(0)
             41 -> if (price.isNotEmpty()) price.deleteCharAt(price.length - 1)
             43 -> {
-                player.closeInventory()
                 player.inventory.setItemInMainHand(null)
-                item.apply {
-                    val meta=this.itemMeta
-                    val lore=meta.lore() ?: mutableListOf()
+                val meta=item.itemMeta
+                val lore=meta.lore() ?: mutableListOf()
+                try {
                     meta.persistentDataContainer.set(NamespacedKey(UserShop.plugin, "price"),
                         PersistentDataType.DOUBLE, price.toString().toInt().toDouble()
                     )
-                    lore[0] = Component.text("가격: ${price}원").color(TextColor.color(0xDDEB9D))
-                    lore.add(1, Component.text("플레이어 ${player.name}이(가) 등록함").color(TextColor.color(0xC68EFD)))
-                    item.itemMeta=meta
+                } catch (e:NumberFormatException) {
+                    player.sendMessage(ShopHolder().prefix.append(Component.text("가격을 입력해 주세요!")))
                 }
+                lore[0] = Component.text("가격: ${price}원").color(TextColor.color(0xDDEB9D))
+                lore.add(1, Component.text("플레이어 ${player.name}이(가) 등록함").color(TextColor.color(0xC68EFD)))
+                meta.lore(lore)
+                item.itemMeta=meta
                 val userData = UserData(player)
                 for (i in 1..1000) {
                     if (userData.getPage(i).size >= 45) continue
@@ -95,11 +97,12 @@ class AddItemHolder: InventoryHolder, Listener {
                         break
                     }
                 }
+                player.closeInventory()
                 return
             }
             else -> return
         }
-        currentLore.add(0, Component.text(price.toString()))
+        currentLore[0] = Component.text(price.toString())
         meta.lore(currentLore)
         item.itemMeta = meta
         player.updateInventory()

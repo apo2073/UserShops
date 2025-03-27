@@ -16,6 +16,7 @@ import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
+import java.util.*
 
 class ShopHolder: InventoryHolder, Listener {
     constructor(player: Player) {
@@ -43,7 +44,11 @@ class ShopHolder: InventoryHolder, Listener {
                 val meta=this.itemMeta
                 meta.displayName(Component.text("이전 페이지").color(NamedTextColor.RED))
                 meta.persistentDataContainer.set(pageKey, PersistentDataType.INTEGER, 1)
-                meta.persistentDataContainer.set(playerKey, PersistentDataType.STRING, player.uniqueId.toString())
+                meta.persistentDataContainer.set(playerKey, PersistentDataType.STRING,
+                    player.uniqueId.toString())
+                meta.lore(mutableListOf(Component.text("[ 페이지 ${
+                    meta.persistentDataContainer.get(pageKey, PersistentDataType.INTEGER)
+                } ]")))
                 itemMeta=meta
             })
         inv.setItem(53,
@@ -51,39 +56,62 @@ class ShopHolder: InventoryHolder, Listener {
                 val meta=this.itemMeta
                 meta.displayName(Component.text("다음 페이지").color(NamedTextColor.GREEN))
                 meta.persistentDataContainer.set(pageKey, PersistentDataType.INTEGER, 2)
+                meta.lore(mutableListOf(Component.text("[ 페이지 ${
+                    meta.persistentDataContainer.get(pageKey, PersistentDataType.INTEGER)
+                } ]")))
                 itemMeta=meta
             })
         return inv
     }
-
     @EventHandler
     fun InventoryClickEvent.changePage() {
         if (inventory.holder !is ShopHolder) return
-        isCancelled=true
-        val page= currentItem?.itemMeta?.persistentDataContainer?.get(pageKey, PersistentDataType.INTEGER)?:return
-        val player =whoClicked as Player
-        val owner=Bukkit.getPlayer(currentItem?.itemMeta?.persistentDataContainer?.get(playerKey, PersistentDataType.STRING).toString()) ?: return
-        player.closeInventory()
-        player.openInventory(inv.apply {
-            contents= UserData(owner).getPage(page).toTypedArray()
+        isCancelled = true
 
-            setItem(45,
-                ItemStack(Material.RED_STAINED_GLASS_PANE).apply {
-                    val meta=this.itemMeta
-                    meta.displayName(Component.text("이전 페이지").color(NamedTextColor.RED))
-                    meta.persistentDataContainer.set(pageKey, PersistentDataType.INTEGER, page-1)
-                    meta.persistentDataContainer.set(playerKey, PersistentDataType.STRING, owner.uniqueId.toString())
-                    itemMeta=meta
-                })
-            setItem(53,
-                ItemStack(Material.GREEN_STAINED_GLASS_PANE).apply {
-                    val meta=this.itemMeta
-                    meta.displayName(Component.text("다음 페이지").color(NamedTextColor.GREEN))
-                    meta.persistentDataContainer.set(pageKey, PersistentDataType.INTEGER, page+1)
-                    itemMeta=meta
-                })
-        })
+        val currentItem = currentItem ?: return
+        val newPage = currentItem.itemMeta?.persistentDataContainer?.get(
+            pageKey, PersistentDataType.INTEGER
+        ) ?: return
+        if (newPage < 1) return
+
+        val player = whoClicked as Player
+        val ownerUUID = inventory.getItem(45)?.itemMeta?.persistentDataContainer?.get(playerKey, PersistentDataType.STRING)
+        val owner = Bukkit.getPlayer(UUID.fromString(
+            ownerUUID ?: return
+        )) ?: return
+
+        val userData = UserData(owner)
+        val pageItems = userData.getPage(newPage)
+        if (pageItems.isEmpty()) return
+
+        inventory.contents = pageItems.toTypedArray()
+
+        inventory.setItem(45,
+            ItemStack(Material.RED_STAINED_GLASS_PANE).apply {
+                val meta = itemMeta
+                meta.displayName(Component.text("이전 페이지").color(NamedTextColor.RED))
+                meta.persistentDataContainer.set(pageKey, PersistentDataType.INTEGER, newPage - 1)
+                meta.persistentDataContainer.set(playerKey, PersistentDataType.STRING, owner.uniqueId.toString())
+                meta.lore(mutableListOf(Component.text("[ 페이지 ${
+                    meta.persistentDataContainer.get(pageKey, PersistentDataType.INTEGER)
+                } ]")))
+                itemMeta = meta
+            })
+        inventory.setItem(53,
+            ItemStack(Material.GREEN_STAINED_GLASS_PANE).apply {
+                val meta = itemMeta
+                meta.displayName(Component.text("다음 페이지").color(NamedTextColor.GREEN))
+                meta.persistentDataContainer.set(pageKey, PersistentDataType.INTEGER, newPage + 1)
+                meta.lore(mutableListOf(Component.text("[ 페이지 ${
+                    meta.persistentDataContainer.get(pageKey, PersistentDataType.INTEGER)
+                } ]")))
+                itemMeta = meta
+            })
+
+        player.closeInventory()
+        player.openInventory(inventory)
     }
+
 
     @EventHandler
     fun InventoryClickEvent.manage() {
@@ -91,35 +119,71 @@ class ShopHolder: InventoryHolder, Listener {
         isCancelled=true
 
         val player =whoClicked as Player
-        val owner=Bukkit.getPlayer(inventory.getItem(45)!!.itemMeta?.persistentDataContainer?.get(playerKey, PersistentDataType.STRING).toString()) ?: return
+        val owner=Bukkit.getPlayer(
+            UUID.fromString(
+                inventory.getItem(45)!!.itemMeta?.persistentDataContainer
+                    ?.get(playerKey, PersistentDataType.STRING).toString()
+            )
+        ) ?: return
         if (player!=owner) return
 
         val page= inventory.getItem(45)!!.itemMeta?.persistentDataContainer?.get(pageKey, PersistentDataType.INTEGER)?:return
-
         if (!isRightClick) return
-        player.inventory.addItem(currentItem ?: return)
+        player.inventory.addItem(currentItem?.apply {
+            val meta=itemMeta
+            val lore=meta.lore()!!
+            lore[0] = null
+            lore[1]=null
+            meta.lore(lore)
+            itemMeta=meta
+        } ?: return)
+        inventory.setItem(slot, null)
         UserData(player).setItemInSlot(page, slot, null)
         player.sendMessage(prefix.append(Component.text("해당 아이템을 판매 취소했습니다")))
         player.updateInventory()
     }
 
-    private val prefix = MiniMessage.miniMessage().deserialize("<b><gradient:#DBCDF0:#8962C3>[ 계시판 ]</gradient></b> ")
+    val prefix = MiniMessage.miniMessage().deserialize("<b><gradient:#DBCDF0:#8962C3>[ 계시판 ]</gradient></b> ")
     @EventHandler
     fun InventoryClickEvent.bought() {
         if (inventory.holder !is ShopHolder) return
         isCancelled=true
 
         val player =whoClicked as Player
-        val owner=Bukkit.getPlayer(inventory.getItem(45)!!.itemMeta?.persistentDataContainer?.get(playerKey, PersistentDataType.STRING).toString()) ?: return
-        val price=currentItem?.itemMeta?.persistentDataContainer?.get(pageKey, PersistentDataType.DOUBLE) ?: return
-        val page= inventory.getItem(45)!!.itemMeta?.persistentDataContainer?.get(priceKey, PersistentDataType.INTEGER)?:return
+        val owner=Bukkit.getPlayer(
+            UUID.fromString(
+                inventory.getItem(45)!!.itemMeta?.persistentDataContainer?.get(
+                    playerKey, PersistentDataType.STRING).toString()
+            )
+        ) ?: return
+        val price=currentItem?.itemMeta?.persistentDataContainer?.get(
+            priceKey,
+            PersistentDataType.DOUBLE
+        ) ?: return
+        val page= inventory.getItem(45)!!.itemMeta?.persistentDataContainer?.get(
+            pageKey, PersistentDataType.INTEGER
+        ) ?:return
+
+        if (!UserShop.economy.has(player, price)) {
+            player.sendMessage(prefix.append(Component.text("충분한 돈을 갖고 있지 않습니다")))
+            return
+        }
 
         val userData=UserData(owner)
 
+        player.inventory.addItem(currentItem?.apply {
+            val meta=itemMeta
+            val lore=meta.lore()!!
+            lore[0] = null
+            lore[1]= null
+            meta.lore(lore)
+            itemMeta=meta
+        } ?: return)
+        inventory.setItem(slot, null)
+        player.updateInventory()
         userData.setItemInSlot(page, slot, null)
         userData.addEarnings(price.toInt())
         UserShop.economy.withdrawPlayer(player, price)
         player.sendMessage(prefix.append(Component.text("해당 아이템을 구매했습니다")))
-        player.updateInventory()
     }
 }

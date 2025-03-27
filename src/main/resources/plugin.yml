@@ -5,11 +5,14 @@ api-version: '1.20'
 depend: [Vault]
 authors: [ 아포칼립스 ]
 commands:
-  계시판:
+  게시판:
+
+libraries:
+  - org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.1.0
 
 permissions:
   apo.board.*:
     default: not op
     children:
       apo.board.cmds:
-        default: notop
+        default: op

@@ -16,10 +16,11 @@ class UserShop : JavaPlugin() {
     override fun onEnable() {
         plugin=this
 
+        saveDefaultConfig()
         setupEcon(this)
         server.pluginManager.registerEvents(AddItemHolder(), this)
         server.pluginManager.registerEvents(ShopHolder(), this)
-        getCommand("계시판")?.apply {
+        getCommand("게시판")?.apply {
             setExecutor(UserCmd())
             tabCompleter=UserCmd()
         }
