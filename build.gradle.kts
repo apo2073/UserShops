@@ -42,8 +42,3 @@ tasks.processResources {
         expand(props)
     }
 }
-
-
-tasks.jar {
-    destinationDirectory=file("C:\\Users\\이태수\\Desktop\\server\\plugins")
-}
