@@ -4,6 +4,7 @@ import kr.apo2073.userShop.cmds.UserCmd
 import kr.apo2073.userShop.inv.AddItemHolder
 import kr.apo2073.userShop.inv.ShopHolder
 import net.milkbowl.vault.economy.Economy
+import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 
 
@@ -36,5 +37,11 @@ class UserShop : JavaPlugin() {
         if (rsp == null) return false
         economy = rsp.provider
         return economy != null
+    }
+
+    fun updateInventory() {
+        Bukkit.getScheduler().runTask(this, Runnable {
+            Bukkit.getOnlinePlayers().forEach { it.updateInventory() }
+        })
     }
 }

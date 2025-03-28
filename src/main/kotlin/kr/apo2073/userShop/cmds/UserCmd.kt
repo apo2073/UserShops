@@ -17,7 +17,7 @@ import org.bukkit.entity.Player
 
 class UserCmd : TabExecutor {
     private val plugin = UserShop.plugin
-    private val prefix = MiniMessage.miniMessage().deserialize("<b><gradient:#DBCDF0:#8962C3>[ 계시판 ]</gradient></b> ")
+    val prefix = MiniMessage.miniMessage().deserialize("<b><gradient:#DBCDF0:#8962C3>[ 계시판 ]</gradient></b> ")
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<String>): Boolean {
         if (sender !is Player) return false
@@ -33,8 +33,7 @@ class UserCmd : TabExecutor {
                     sender.sendMessage(prefix.append(Component.text("손에 아이템을 들어야 합니다!", NamedTextColor.RED)))
                     return true
                 }
-                val holder = AddItemHolder()
-                sender.openInventory(holder.inventory.apply {
+                sender.openInventory(AddItemHolder().inventory.apply {
                     setItem(10, itemInHand.clone().apply {
                         val meta=itemMeta
                         try {
