@@ -6,6 +6,7 @@ import kr.apo2073.userShop.UserShop
 import kr.apo2073.userShop.inv.AddItemHolder
 import kr.apo2073.userShop.inv.ShopHolder
 import kr.apo2073.userShop.utilities.UserData
+import kr.apo2073.userShop.utilities.toComponent
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.minimessage.MiniMessage
@@ -38,11 +39,16 @@ class UserCmd : TabExecutor {
                         val meta=itemMeta
                         try {
                             if (meta.lore()==null) {
-                                meta.lore(mutableListOf(Component.text("0")))
-                            } else {
-                                val lore=meta.lore() ?: mutableListOf()
-                                lore.add(0, Component.text("0"))
+                                val lore = plugin.config.getStringList("아이템추가.가격-설정-로어")
+                                    .map { it.replace("{price}", "0") }
+                                    .map { it.toComponent() }
                                 meta.lore(lore)
+                            } else {
+                                val lores=meta.lore() ?: mutableListOf<Component>()
+                                val lore = plugin.config.getStringList("아이템추가.가격-설정-로어")
+                                    .map { it.replace("{price}", "0") }
+                                    .map { it.toComponent() }
+                                meta.lore(lores.apply { addAll(lore) })
                             }
                         } catch (je: JsonParseException) {
                             meta.lore(mutableListOf(Component.text("0")))

@@ -9,47 +9,48 @@ import java.io.IOException
 import java.util.logging.Level
 
 class UserData(private val player: Player) {
-    private val file = File(UserShop.plugin.dataFolder, "userdata/${player.uniqueId}.yml").apply { parentFile.mkdirs() }
-    private var config = loadConfig()
+    private val baseFolder = File(UserShop.plugin.dataFolder, "userdata/${player.uniqueId}").apply { mkdirs() }
+    private val earningsFile = File(baseFolder, "shop.yml").apply { if (!exists()) createNewFile() }
 
-    private fun loadConfig(): YamlConfiguration {
+    private fun loadConfig(file: File): YamlConfiguration {
         return try {
             YamlConfiguration.loadConfiguration(file)
         } catch (e: Exception) {
-            UserShop.plugin.logger.log(Level.SEVERE, "Failed to load config for ${player.uniqueId}", e)
+            UserShop.plugin.logger.log(Level.SEVERE, "Failed to load config ${file.name} for ${player.uniqueId}", e)
             YamlConfiguration()
         }
     }
 
-    private fun saveConfig() {
+    private fun saveConfig(file: File, config: YamlConfiguration) {
         try {
             config.save(file)
         } catch (e: IOException) {
-            UserShop.plugin.logger.log(Level.SEVERE, "Failed to save config for ${player.uniqueId}", e)
+            UserShop.plugin.logger.log(Level.SEVERE, "Failed to save config ${file.name} for ${player.uniqueId}", e)
         }
     }
 
-    private fun reloadConfig() {
-        config = loadConfig()
+    private fun getPageFile(page: Int): File {
+        return File(baseFolder, "page$page.yml").apply { if (!exists()) createNewFile() }
     }
 
     fun getPage(page: Int): MutableList<ItemStack> {
-        reloadConfig()
-        val section = config.getConfigurationSection("pages.page$page") ?: return mutableListOf()
+        val file = getPageFile(page)
+        val config = loadConfig(file)
+        val section = config.getConfigurationSection("items") ?: return mutableListOf()
         return section.getKeys(false).mapNotNull { section.getItemStack(it) }.toMutableList()
     }
 
     fun addToPage(item: ItemStack, startPage: Int) {
-        reloadConfig()
         var currentPage = startPage
         while (currentPage < 1000) {
-            val sectionPath = "pages.page$currentPage"
-            val section = config.getConfigurationSection(sectionPath) ?: config.createSection(sectionPath)
+            val file = getPageFile(currentPage)
+            val config = loadConfig(file)
+            val section = config.getConfigurationSection("items") ?: config.createSection("items")
             val items = section.getKeys(false).mapNotNull { section.getItemStack(it) }.toMutableList()
 
             if (items.size < 45) {
                 section.set(items.size.toString(), item)
-                saveConfig()
+                saveConfig(file, config)
                 return
             }
             currentPage++
@@ -58,32 +59,30 @@ class UserData(private val player: Player) {
     }
 
     fun setItemInSlot(page: Int, slot: Int, item: ItemStack?) {
-        if (slot !in 0..44) return
+        if (slot !in 0..44) throw IllegalArgumentException("Slot must be between 0 and 44")
 
-        reloadConfig()
-        val sectionPath = "pages.page$page"
-        val section = config.getConfigurationSection(sectionPath)
-            ?: config.createSection(sectionPath)
+        val file = getPageFile(page)
+        val config = loadConfig(file)
+        val section = config.getConfigurationSection("items") ?: config.createSection("items")
         section.set(slot.toString(), item)
-        if (item==null) section.set(slot.toString(), null)
-        saveConfig()
+        saveConfig(file, config)
     }
 
     fun addEarnings(amount: Int) {
-        reloadConfig()
+        val config = loadConfig(earningsFile)
         val currentEarnings = getEarnings()
         config.set("board.earnings", currentEarnings + amount)
-        saveConfig()
+        saveConfig(earningsFile, config)
     }
 
     fun getEarnings(): Int {
-        reloadConfig()
+        val config = loadConfig(earningsFile)
         return config.getInt("board.earnings", 0)
     }
 
     fun clearEarnings() {
-        reloadConfig()
+        val config = loadConfig(earningsFile)
         config.set("board.earnings", 0)
-        saveConfig()
+        saveConfig(earningsFile, config)
     }
 }

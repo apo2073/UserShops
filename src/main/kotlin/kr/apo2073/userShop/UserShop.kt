@@ -38,10 +38,4 @@ class UserShop : JavaPlugin() {
         economy = rsp.provider
         return economy != null
     }
-
-    fun updateInventory() {
-        Bukkit.getScheduler().runTask(this, Runnable {
-            Bukkit.getOnlinePlayers().forEach { it.updateInventory() }
-        })
-    }
 }
