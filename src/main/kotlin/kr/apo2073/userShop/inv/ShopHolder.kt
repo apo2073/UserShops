@@ -112,7 +112,7 @@ class ShopHolder : InventoryHolder, Listener {
         if (event.inventory.holder !is ShopHolder) return
         event.isCancelled = true
 
-        if (event.clickedInventory?.type==InventoryType.PLAYER) return
+        if (event.clickedInventory?.type == InventoryType.PLAYER) return
         val currentItem = event.currentItem ?: return
         if (currentItem.isEmpty || currentItem.type.isAir) return
 
@@ -124,7 +124,7 @@ class ShopHolder : InventoryHolder, Listener {
         val page = event.inventory.getItem(45)?.itemMeta?.persistentDataContainer?.get(pageKey, PersistentDataType.INTEGER) ?: return
         if (!event.isRightClick) return
 
-        if (event.slot==45 || event.slot==53) return
+        if (event.slot == 45 || event.slot == 53) return
         val item = currentItem.clone().apply {
             val meta = itemMeta
             meta.persistentDataContainer.remove(priceKey)
@@ -135,7 +135,7 @@ class ShopHolder : InventoryHolder, Listener {
 
         player.inventory.addItem(item)
         event.inventory.setItem(event.slot, null)
-        UserData(player).setItemInSlot(page, event.slot, null)
+        UserData(player).removeFromPage(page, currentItem)
         player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
         player.sendMessage(prefix.append(Component.text("해당 아이템을 판매 취소했습니다")))
     }
@@ -154,6 +154,7 @@ class ShopHolder : InventoryHolder, Listener {
         val owner = Bukkit.getPlayer(UUID.fromString(ownerUUID ?: return)) ?: return
         if (player == owner) return
 
+        if (event.slot == 45 || event.slot == 53) return
         val price = currentItem.itemMeta?.persistentDataContainer?.get(priceKey, PersistentDataType.DOUBLE) ?: return
         val page = event.inventory.getItem(45)?.itemMeta?.persistentDataContainer?.get(pageKey, PersistentDataType.INTEGER) ?: return
 
@@ -178,6 +179,5 @@ class ShopHolder : InventoryHolder, Listener {
         UserShop.economy.withdrawPlayer(player, price)
         player.playSound(player.location, Sound.ENTITY_VILLAGER_TRADE, 1.0f, 1.0f)
         player.sendMessage(prefix.append(Component.text("해당 아이템을 구매했습니다")))
-        owner.sendMessage(prefix.append(Component.text("${player.name}님이 ${price.toInt()}원에 아이템을 구매했습니다")))
     }
 }
